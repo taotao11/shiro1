@@ -1,5 +1,6 @@
 package com.shiro.config;
 
+import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.apache.shiro.mgt.SecurityManager;
@@ -10,16 +11,27 @@ import java.util.Map;
 
 @Configuration
 public class ShiroConfig {
+    /**
+     * 自定义 shiro filter 工厂类
+     * @param securityManager
+     * @return
+     */
     @Bean
     public ShiroFilterFactoryBean shirFilter(SecurityManager securityManager) {
         System.out.println("ShiroConfiguration.shirFilter()");
+        //注入权限控制
         ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
         shiroFilterFactoryBean.setSecurityManager(securityManager);
+
+        //注入密码匹配器
+        HashedCredentialsMatcher hashedCredentialsMatcher = new HashedCredentialsMatcher();
         //拦截器.
         Map<String,String> filterChainDefinitionMap = new LinkedHashMap<String,String>();
 
         // 配置不会被拦截的链接 顺序判断
         filterChainDefinitionMap.put("/static/**", "anon");
+
+        filterChainDefinitionMap.put("/md5", "anon");
         //配置登录请求通过
         filterChainDefinitionMap.put("/formLogin", "anon");
         //配置退出 过滤器,其中的具体的退出代码Shiro已经替我们实现了
@@ -42,9 +54,15 @@ public class ShiroConfig {
         return shiroFilterFactoryBean;
     }
 
+    /**
+     * 自定义 权限 认证
+     * @return
+     */
     @Bean
     public MyShiroRealm myShiroRealm(){
         MyShiroRealm myShiroRealm = new MyShiroRealm();
+        //改变默认认证方式
+        myShiroRealm.setCredentialsMatcher(hashedCredentialsMatcher());
         return myShiroRealm;
     }
 
@@ -58,4 +76,21 @@ public class ShiroConfig {
         securityManager.setRealm(myShiroRealm());
         return securityManager;
     }
+
+    /**
+     * 密码加密算法.
+     * @return
+     */
+    @Bean
+    public HashedCredentialsMatcher hashedCredentialsMatcher(){
+
+        //        MyHashedCredentialsMatcher hashedCredentialsMatcher = new MyHashedCredentialsMatcher(ehCacheManager());
+        //默认的.
+        HashedCredentialsMatcher hashedCredentialsMatcher = new HashedCredentialsMatcher();
+
+        hashedCredentialsMatcher.setHashAlgorithmName("md5");//加密算法.
+        hashedCredentialsMatcher.setHashIterations(1);//散列的次数.
+        return hashedCredentialsMatcher;
+    }
+
 }
